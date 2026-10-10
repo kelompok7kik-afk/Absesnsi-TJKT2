@@ -1,383 +1,132 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <title>Absensi QR Siswa</title>
-
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-
   <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-  <!-- ================= HOME ================= -->
-
   <section id="homePage" class="page home-page">
-
     <div class="home-container">
-
-      <div class="logo">
-        📚
-      </div>
-
+      <div class="logo">📚</div>
       <h1>ABSENSI SISWA</h1>
-
-      <p class="subtitle">
-        Sistem Absensi Berbasis QR Code
-      </p>
-
-      <button class="btn primary" onclick="showStudentPage()">
-        📷 ABSENSI SISWA
-      </button>
-
-      <button class="btn secondary" onclick="showRolePage()">
-        👨‍🏫 GURU / ADMIN
-      </button>
-
+      <p class="subtitle">Sistem Absensi Berbasis QR Code</p>
+      <button class="btn primary" onclick="showLoginPage('scan')">📷 ABSENSI SISWA</button>
+      <button class="btn secondary" onclick="showRolePage()">👨‍🏫 GURU / ADMIN</button>
     </div>
-
   </section>
-
-
-  <!-- ================= SISWA ================= -->
 
   <section id="studentPage" class="page">
-
     <div class="container">
-
-      <button class="back-btn" onclick="goHome()">
-        ← Kembali
-      </button>
-
+      <button class="back-btn" onclick="goHome()">← Kembali</button>
       <div class="card">
-
-        <div class="icon">
-          📷
-        </div>
-
+        <div class="icon">📷</div>
         <h2>Absensi Siswa</h2>
-
-        <p>
-          Arahkan kamera ke QR Code siswa.
-        </p>
-
+        <p>Arahkan kamera ke QR Code siswa.</p>
         <div id="reader"></div>
-
-        <div id="scanResult" class="result">
-          Kamera belum dijalankan.
-        </div>
-
+        <div id="scanResult" class="result">Kamera belum dijalankan.</div>
       </div>
-
     </div>
-
   </section>
-
-
-  <!-- ================= ROLE ================= -->
 
   <section id="rolePage" class="page">
-
     <div class="container">
-
-      <button class="back-btn" onclick="goHome()">
-        ← Kembali
-      </button>
-
+      <button class="back-btn" onclick="goHome()">← Kembali</button>
       <div class="card">
-
-        <div class="icon">
-          👨‍🏫
-        </div>
-
+        <div class="icon">👨‍🏫</div>
         <h2>Pilih Akses</h2>
-
-        <button class="btn primary" onclick="showGuruPage()">
-          👨‍🏫 GURU
-        </button>
-
-        <button class="btn secondary" onclick="showLoginPage()">
-          🔐 ADMIN
-        </button>
-
+        <button class="btn primary" onclick="showLoginPage('guru')">👨‍🏫 GURU</button>
+        <button class="btn secondary" onclick="showLoginPage('admin')">🔐 ADMIN</button>
       </div>
-
     </div>
-
   </section>
 
-
-  <!-- ================= GURU ================= -->
-
   <section id="guruPage" class="page">
-
     <div class="container wide">
-
-      <button class="back-btn" onclick="goBackToRole()">
-        ← Kembali
-      </button>
-
+      <button class="back-btn" onclick="goBackToRole()">← Kembali</button>
       <div class="card">
-
-        <div class="icon">
-          👨‍🏫
-        </div>
-
+        <div class="icon">👨‍🏫</div>
         <h2>Data Absensi Guru</h2>
-
-        <p>
-          Data absensi siswa dari Google Sheets.
-        </p>
-
-        <div id="guruStatus" class="result">
-          Memuat data...
-        </div>
-
+        <button class="btn secondary small-btn" onclick="loadGuruData()">↻ Muat Ulang</button>
+        <p>Data absensi siswa dari Google Sheets.</p>
+        <div id="guruStatus" class="result">Memuat data...</div>
         <div class="table-container">
-
           <table>
-
             <thead>
-
               <tr>
                 <th>No</th>
                 <th>Nama</th>
                 <th>No Absen</th>
                 <th>Waktu</th>
+                <th>Keterangan</th>
               </tr>
-
             </thead>
-
-            <tbody id="guruTable">
-
-            </tbody>
-
+            <tbody id="guruTable"></tbody>
           </table>
-
         </div>
-
       </div>
-
     </div>
-
   </section>
-
-
-  <!-- ================= LOGIN ADMIN ================= -->
 
   <section id="loginPage" class="page">
-
     <div class="container">
-
-      <button class="back-btn" onclick="goBackToRole()">
-        ← Kembali
-      </button>
-
+      <button class="back-btn" onclick="goBackToRole()">← Kembali</button>
       <div class="card login-card">
-
-        <div class="icon">
-          🔐
-        </div>
-
-        <h2>Login Admin</h2>
-
-        <input
-          type="text"
-          id="username"
-          placeholder="Username"
-          autocomplete="username"
-        >
-
-        <input
-          type="password"
-          id="password"
-          placeholder="Password"
-          autocomplete="current-password"
-        >
-
-        <button
-          class="btn primary"
-          onclick="loginAdmin()"
-        >
-          LOGIN
-        </button>
-
+        <div class="icon">🔐</div>
+        <h2 id="loginTitle">Login Guru / Admin</h2>
+        <p id="loginHint">Masuk dengan akun yang terdaftar untuk melanjutkan.</p>
+        <input type="text" id="username" placeholder="Username" autocomplete="username">
+        <input type="password" id="password" placeholder="Password" autocomplete="current-password">
+        <button class="btn primary" onclick="loginAdmin()">LOGIN</button>
         <div id="loginMessage" class="result"></div>
-
       </div>
-
     </div>
-
   </section>
 
-
-  <!-- ================= ADMIN ================= -->
-
   <section id="adminPage" class="page">
-
     <div class="container wide">
-
       <div class="admin-header">
-
         <div>
           <h2>Dashboard Admin</h2>
           <p>Monitoring kehadiran siswa</p>
         </div>
-
-        <button
-          class="btn danger small-btn"
-          onclick="logoutAdmin()"
-        >
-          Keluar
-        </button>
-
+        <button class="btn danger small-btn" onclick="logoutAdmin()">Keluar</button>
       </div>
-
-
-      <!-- STATISTIK -->
 
       <div class="stats">
-
-        <div class="stat-card">
-
-          <div class="stat-icon">
-            👨‍🎓
-          </div>
-
-          <div>
-            <span>Total Siswa</span>
-            <strong id="totalSiswa">0</strong>
-          </div>
-
-        </div>
-
-
-        <div class="stat-card">
-
-          <div class="stat-icon">
-            ✅
-          </div>
-
-          <div>
-            <span>Hadir</span>
-            <strong id="jumlahHadir">0</strong>
-          </div>
-
-        </div>
-
-
-        <div class="stat-card">
-
-          <div class="stat-icon">
-            ❌
-          </div>
-
-          <div>
-            <span>Tidak Hadir</span>
-            <strong id="jumlahTidakHadir">0</strong>
-          </div>
-
-        </div>
-
-
-        <div class="stat-card">
-
-          <div class="stat-icon">
-            📊
-          </div>
-
-          <div>
-            <span>Kehadiran</span>
-            <strong id="persentase">0%</strong>
-          </div>
-
-        </div>
-
+        <div class="stat-card"><div class="stat-icon">👨‍🎓</div><div><span>Total Siswa</span><strong id="totalSiswa">0</strong></div></div>
+        <div class="stat-card"><div class="stat-icon">✅</div><div><span>Hadir</span><strong id="jumlahHadir">0</strong></div></div>
+        <div class="stat-card"><div class="stat-icon">⏰</div><div><span>Terlambat</span><strong id="jumlahTerlambat">0</strong></div></div>
+        <div class="stat-card"><div class="stat-icon">🏠</div><div><span>Waktu Pulang</span><strong id="jumlahWaktuPulang">0</strong></div></div>
+        <div class="stat-card"><div class="stat-icon">📝</div><div><span>Izin</span><strong id="jumlahIzin">0</strong></div></div>
+        <div class="stat-card"><div class="stat-icon">🤒</div><div><span>Sakit</span><strong id="jumlahSakit">0</strong></div></div>
+        <div class="stat-card"><div class="stat-icon">❌</div><div><span>Alfa</span><strong id="jumlahAlfa">0</strong></div></div>
+        <div class="stat-card"><div class="stat-icon">📊</div><div><span>Kehadiran</span><strong id="persentase">0%</strong></div></div>
       </div>
-
-
-      <!-- GRAFIK -->
 
       <div class="card chart-card">
-
-        <h3>
-          Grafik Kehadiran Hari Ini
-        </h3>
-
+        <h3>Grafik Kehadiran Hari Ini</h3>
         <div class="chart">
-
-          <div class="chart-column">
-
-            <div
-              id="barHadirValue"
-              class="chart-value"
-            >
-              0%
-            </div>
-
-            <div
-              id="barHadir"
-              class="bar hadir-bar"
-            >
-            </div>
-
-            <span>
-              Hadir
-            </span>
-
-          </div>
-
-
-          <div class="chart-column">
-
-            <div
-              id="barTidakHadirValue"
-              class="chart-value"
-            >
-              0%
-            </div>
-
-            <div
-              id="barTidakHadir"
-              class="bar tidak-hadir-bar"
-            >
-            </div>
-
-            <span>
-              Tidak Hadir
-            </span>
-
-          </div>
-
+          <div class="chart-column"><div id="barHadirValue" class="chart-value">0%</div><div id="barHadir" class="bar hadir-bar"></div><span>Hadir</span></div>
+          <div class="chart-column"><div id="barTerlambatValue" class="chart-value">0%</div><div id="barTerlambat" class="bar terlambat-bar"></div><span>Terlambat</span></div>
+          <div class="chart-column"><div id="barWaktuPulangValue" class="chart-value">0%</div><div id="barWaktuPulang" class="bar pulang-bar"></div><span>Pulang</span></div>
+          <div class="chart-column"><div id="barIzinValue" class="chart-value">0%</div><div id="barIzin" class="bar izin-bar"></div><span>Izin</span></div>
+          <div class="chart-column"><div id="barSakitValue" class="chart-value">0%</div><div id="barSakit" class="bar sakit-bar"></div><span>Sakit</span></div>
+          <div class="chart-column"><div id="barAlfaValue" class="chart-value">0%</div><div id="barAlfa" class="bar alfa-bar"></div><span>Alfa</span></div>
         </div>
-
       </div>
-
-
-      <!-- INFO -->
 
       <div class="card">
-
-        <h3>
-          Informasi
-        </h3>
-
-        <p>
-          Data dashboard diperoleh langsung
-          dari Google Sheets melalui Google Apps Script.
-        </p>
-
+        <h3>Informasi</h3>
+        <p>Data dashboard diperoleh langsung dari Google Sheets. Persentase kehadiran menghitung Hadir dan Terlambat.</p>
       </div>
-
     </div>
-
   </section>
 
-
   <script src="script.js"></script>
-
 </body>
 </html>
