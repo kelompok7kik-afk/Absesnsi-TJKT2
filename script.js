@@ -1,5 +1,5 @@
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzpRw4l4OjGwyk1ihgjUrmL6mNIYw2Tast0fuCYe-mZmqfyOxPZXMPDvYlXJGWFDgOVLw/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxZ5Z0HLad_1EaAUmoQBzX8QTTPK3hjQQ540RnPBfO_cjoPuDS8SOrvuBs-gqrY8UPi/exec";
 
 let currentRole = "";
 let loginPurpose = "";
