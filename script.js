@@ -1,4 +1,3 @@
-
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxZ5Z0HLad_1EaAUmoQBzX8QTTPK3hjQQ540RnPBfO_cjoPuDS8SOrvuBs-gqrY8UPi/exec";
 
 let currentRole = "";
@@ -6,8 +5,23 @@ let loginPurpose = "";
 let sessionToken = "";
 let html5QrCode = null;
 let isScannerRunning = false;
+let scanInProgress = false;
+let loadingGuru = false;
 
 const $ = (id) => document.getElementById(id);
+
+const STATUS_OPTIONS = [
+  "Hadir",
+  "Terlambat",
+  "Waktu pulang",
+  "Izin",
+  "Sakit",
+  "Alfa"
+];
+
+/* =========================
+   NAVIGASI HALAMAN
+========================= */
 
 function showPage(pageId) {
   document.querySelectorAll(".page").forEach((page) => {
@@ -28,6 +42,9 @@ function goHome() {
 
 function goBackToRole() {
   stopScanner();
+  sessionToken = "";
+  currentRole = "";
+  loginPurpose = "";
   showPage("rolePage");
 }
 
@@ -39,9 +56,10 @@ function showLoginPage(purpose) {
   stopScanner();
 
   loginPurpose = purpose;
+
   $("username").value = "";
   $("password").value = "";
-  $("loginMessage").textContent = "";
+  setMessage("loginMessage", "");
 
   if (purpose === "scan") {
     $("loginTitle").textContent = "Login untuk Absensi";
@@ -60,6 +78,18 @@ function showLoginPage(purpose) {
   showPage("loginPage");
 }
 
+function logoutAdmin() {
+  stopScanner();
+  sessionToken = "";
+  currentRole = "";
+  loginPurpose = "";
+  showPage("homePage");
+}
+
+/* =========================
+   KONEKSI APPS SCRIPT
+========================= */
+
 function apiUrl(action, params = {}) {
   const url = new URL(SCRIPT_URL);
   url.searchParams.set("action", action);
@@ -76,7 +106,8 @@ function apiUrl(action, params = {}) {
 async function apiGet(action, params = {}) {
   const response = await fetch(apiUrl(action, params), {
     method: "GET",
-    redirect: "follow"
+    redirect: "follow",
+    cache: "no-store"
   });
 
   if (!response.ok) {
@@ -94,6 +125,10 @@ function setMessage(id, message, isError = false) {
   element.classList.toggle("error", isError);
 }
 
+/* =========================
+   LOGIN
+========================= */
+
 async function loginAdmin() {
   const username = $("username").value.trim();
   const password = $("password").value;
@@ -104,20 +139,20 @@ async function loginAdmin() {
   }
 
   const button = document.querySelector("#loginPage .btn.primary");
+
   if (button) {
     button.disabled = true;
     button.textContent = "Memeriksa...";
   }
 
   try {
-    const result = await apiGet("login", { username, password });
+    const result = await apiGet("login", {
+      username: username,
+      password: password
+    });
 
     if (!result.success || !result.token) {
-      setMessage(
-        "loginMessage",
-        result.message || "Login gagal.",
-        true
-      );
+      setMessage("loginMessage", result.message || "Login gagal.", true);
       return;
     }
 
@@ -137,7 +172,11 @@ async function loginAdmin() {
       loginPurpose === "scan" &&
       !["GURU", "ADMIN"].includes(role)
     ) {
-      setMessage("loginMessage", "Akun tidak diizinkan melakukan scan.", true);
+      setMessage(
+        "loginMessage",
+        "Akun tidak diizinkan melakukan scan.",
+        true
+      );
       return;
     }
 
@@ -156,9 +195,10 @@ async function loginAdmin() {
     }
   } catch (error) {
     console.error(error);
+
     setMessage(
       "loginMessage",
-      "Tidak dapat terhubung ke server. Periksa URL Apps Script dan deployment.",
+      "Tidak dapat terhubung ke server. Periksa URL dan deployment Apps Script.",
       true
     );
   } finally {
@@ -168,6 +208,10 @@ async function loginAdmin() {
     }
   }
 }
+
+/* =========================
+   SCANNER QR
+========================= */
 
 async function startScanner() {
   if (!sessionToken) {
@@ -181,7 +225,7 @@ async function startScanner() {
   }
 
   try {
-    stopScanner();
+    await stopScannerAsync();
 
     html5QrCode = new Html5Qrcode("reader");
 
@@ -210,23 +254,27 @@ async function startScanner() {
     );
 
     isScannerRunning = true;
-    setMessage("scanResult", "Kamera aktif. Arahkan ke QR Code siswa.");
-  } catch (error) {
-    console.error(error);
+
     setMessage(
       "scanResult",
-      "Kamera gagal dibuka. Izinkan akses kamera dan buka website melalui HTTPS.",
+      "Kamera aktif. Arahkan ke QR Code siswa."
+    );
+  } catch (error) {
+    console.error(error);
+
+    setMessage(
+      "scanResult",
+      "Kamera gagal dibuka. Izinkan akses kamera dan gunakan website melalui HTTPS.",
       true
     );
   }
 }
 
-let scanInProgress = false;
-
 async function handleQrScan(decodedText) {
   if (scanInProgress) return;
 
   scanInProgress = true;
+
   setMessage("scanResult", "QR terbaca. Menyimpan absensi...");
 
   try {
@@ -242,9 +290,10 @@ async function handleQrScan(decodedText) {
 
       setMessage(
         "scanResult",
-        "Absensi berhasil!\nNama: " + nama +
-        "\nKeterangan: " + status +
-        "\nWaktu: " + waktu
+        "Absensi berhasil!\n" +
+          "Nama: " + nama + "\n" +
+          "Keterangan: " + status + "\n" +
+          "Waktu scan: " + waktu
       );
 
       await stopScannerAsync();
@@ -257,6 +306,7 @@ async function handleQrScan(decodedText) {
     }
   } catch (error) {
     console.error(error);
+
     setMessage(
       "scanResult",
       "Gagal menyimpan absensi. Periksa koneksi internet.",
@@ -268,45 +318,82 @@ async function handleQrScan(decodedText) {
 }
 
 async function stopScannerAsync() {
-  if (!html5QrCode || !isScannerRunning) return;
+  const scanner = html5QrCode;
 
-  try {
-    await html5QrCode.stop();
-    await html5QrCode.clear();
-  } catch (error) {
-    console.warn(error);
+  if (!scanner) {
+    isScannerRunning = false;
+    return;
   }
 
-  isScannerRunning = false;
   html5QrCode = null;
+  const wasRunning = isScannerRunning;
+  isScannerRunning = false;
+
+  if (wasRunning) {
+    try {
+      await scanner.stop();
+    } catch (error) {
+      console.warn("Scanner sudah berhenti:", error);
+    }
+  }
+
+  try {
+    await scanner.clear();
+  } catch (error) {
+    console.warn("Scanner sudah dibersihkan:", error);
+  }
 }
 
 function stopScanner() {
-  if (html5QrCode && isScannerRunning) {
-    html5QrCode.stop()
-      .then(() => html5QrCode.clear())
-      .catch((error) => console.warn(error));
-  }
+  const scanner = html5QrCode;
+  const wasRunning = isScannerRunning;
 
-  isScannerRunning = false;
   html5QrCode = null;
+  isScannerRunning = false;
   scanInProgress = false;
+
+  if (scanner && wasRunning) {
+    scanner.stop()
+      .catch((error) => console.warn(error))
+      .finally(() => {
+        try {
+          scanner.clear();
+        } catch (error) {
+          console.warn(error);
+        }
+      });
+  }
 }
 
-async function loadGuruData() {
-  if (!sessionToken || currentRole !== "GURU") return;
+/* =========================
+   HALAMAN GURU
+========================= */
 
+async function loadGuruData() {
+  if (!sessionToken || currentRole !== "GURU" || loadingGuru) {
+    return;
+  }
+
+  loadingGuru = true;
   setMessage("guruStatus", "Memuat data absensi...");
 
   try {
-    const result = await apiGet("guru", { token: sessionToken });
+    const result = await apiGet("guru", {
+      token: sessionToken
+    });
 
     if (!result.success) {
-      setMessage("guruStatus", result.message || "Gagal memuat data.", true);
+      setMessage(
+        "guruStatus",
+        result.message || "Gagal memuat data.",
+        true
+      );
       return;
     }
 
     const table = $("guruTable");
+    if (!table) return;
+
     table.replaceChildren();
 
     (result.data || []).forEach((student, index) => {
@@ -316,18 +403,12 @@ async function loadGuruData() {
       addCell(tr, student.nama);
       addCell(tr, student.noAbsen);
       addCell(tr, student.waktu || "—");
+      addCell(tr, student.waktuPerubahan || "—");
 
       const statusCell = document.createElement("td");
       const select = document.createElement("select");
 
-      [
-        "Hadir",
-        "Terlambat",
-        "Waktu pulang",
-        "Izin",
-        "Sakit",
-        "Alfa"
-      ].forEach((status) => {
+      STATUS_OPTIONS.forEach((status) => {
         const option = document.createElement("option");
         option.value = status;
         option.textContent = status;
@@ -336,24 +417,31 @@ async function loadGuruData() {
       });
 
       select.addEventListener("change", async () => {
+        const selectedStatus = select.value;
         select.disabled = true;
 
         try {
           const response = await apiGet("ubahKeterangan", {
             token: sessionToken,
             id: student.id,
-            keterangan: select.value
+            keterangan: selectedStatus
           });
 
           if (!response.success) {
             alert(response.message || "Gagal mengubah keterangan.");
-            await loadGuruData();
+          } else {
+            setMessage(
+              "guruStatus",
+              "Status " + student.nama +
+                " berhasil diperbarui menjadi " + selectedStatus + "."
+            );
           }
         } catch (error) {
+          console.error(error);
           alert("Gagal terhubung ke server.");
-          await loadGuruData();
         } finally {
           select.disabled = false;
+          await loadGuruData();
         }
       });
 
@@ -364,25 +452,38 @@ async function loadGuruData() {
 
     setMessage(
       "guruStatus",
-      "Data berhasil dimuat. Ubah keterangan melalui pilihan di tabel."
+      "Data berhasil dimuat. Waktu scan dan waktu perubahan disimpan terpisah."
     );
   } catch (error) {
     console.error(error);
-    setMessage("guruStatus", "Gagal mengambil data dari server.", true);
+
+    setMessage(
+      "guruStatus",
+      "Gagal mengambil data dari server.",
+      true
+    );
+  } finally {
+    loadingGuru = false;
   }
 }
 
 function addCell(row, value) {
   const td = document.createElement("td");
-  td.textContent = value == null ? "" : String(value);
+  td.textContent = value == null || value === "" ? "—" : String(value);
   row.appendChild(td);
 }
+
+/* =========================
+   DASHBOARD HARIAN
+========================= */
 
 async function loadDashboard() {
   if (!sessionToken || currentRole !== "ADMIN") return;
 
   try {
-    const result = await apiGet("dashboard", { token: sessionToken });
+    const result = await apiGet("dashboard", {
+      token: sessionToken
+    });
 
     if (!result.success) {
       alert(result.message || "Dashboard gagal dimuat.");
@@ -406,6 +507,8 @@ async function loadDashboard() {
     updateBar("Izin", result.izin, total);
     updateBar("Sakit", result.sakit, total);
     updateBar("Alfa", result.alfa, total);
+
+    await loadMonthlyDashboard();
   } catch (error) {
     console.error(error);
     alert("Gagal mengambil dashboard. Periksa koneksi dan deployment.");
@@ -419,14 +522,166 @@ function updateBar(name, count, total) {
   const bar = $("bar" + name);
   const label = $("bar" + name + "Value");
 
-  if (bar) bar.style.height = Math.max(percent, value > 0 ? 4 : 0) + "%";
-  if (label) label.textContent = percent.toFixed(1) + "%";
+  if (bar) {
+    bar.style.height = percent + "%";
+  }
+
+  if (label) {
+    label.textContent = percent.toFixed(1) + "%";
+  }
 }
 
-function logoutAdmin() {
-  goHome();
+/* =========================
+   DASHBOARD BULANAN
+========================= */
+
+function initMonthPicker() {
+  const picker = $("bulanAbsensi");
+  if (!picker) return;
+
+  const now = new Date();
+
+  picker.value =
+    now.getFullYear() + "-" +
+    String(now.getMonth() + 1).padStart(2, "0");
+
+  // Jangan izinkan pemilihan bulan yang formatnya tidak sesuai.
+  picker.max = picker.value;
 }
+
+async function loadMonthlyDashboard() {
+  if (!sessionToken || currentRole !== "ADMIN") return;
+
+  const picker = $("bulanAbsensi");
+
+  if (!picker || !picker.value) {
+    setMessage("statusBulanan", "Pilih bulan terlebih dahulu.", true);
+    return;
+  }
+
+  const parts = picker.value.split("-");
+  const tahun = Number(parts[0]);
+  const bulan = Number(parts[1]);
+
+  setMessage("statusBulanan", "Memuat rekap kehadiran bulanan...");
+
+  try {
+    const result = await apiGet("dashboardBulanan", {
+      token: sessionToken,
+      bulan: bulan,
+      tahun: tahun
+    });
+
+    if (!result.success) {
+      setMessage(
+        "statusBulanan",
+        result.message || "Gagal memuat data bulanan.",
+        true
+      );
+      return;
+    }
+
+    const hadir = Number(result.hadir) || 0;
+    const izin = Number(result.izin) || 0;
+    const sakit = Number(result.sakit) || 0;
+    const alfa = Number(result.alfa) || 0;
+
+    const total = Number(result.totalEvaluasi) || 0;
+
+    const persenHadir = Number(result.persenHadir) || 0;
+    const persenIzin = Number(result.persenIzin) || 0;
+    const persenSakit = Number(result.persenSakit) || 0;
+    const persenAlfa = Number(result.persenAlfa) || 0;
+
+    const donut = $("monthlyDonut");
+
+    if (donut) {
+      if (total > 0) {
+        const p1 = persenHadir;
+        const p2 = p1 + persenIzin;
+        const p3 = p2 + persenSakit;
+
+        donut.style.background =
+          "conic-gradient(" +
+          "#31e69b 0% " + p1 + "%, " +
+          "#65b8ff " + p1 + "% " + p2 + "%, " +
+          "#ff9e8d " + p2 + "% " + p3 + "%, " +
+          "#ff6e83 " + p3 + "% 100%)";
+      } else {
+        donut.style.background = "#263b54";
+      }
+    }
+
+    $("monthlyCenterValue").textContent =
+      persenHadir.toFixed(1) + "%";
+
+    $("monthlyHadirCount").textContent = hadir;
+    $("monthlyIzinCount").textContent = izin;
+    $("monthlySakitCount").textContent = sakit;
+    $("monthlyAlfaCount").textContent = alfa;
+
+    $("monthlyHadirPercent").textContent =
+      persenHadir.toFixed(1) + "%";
+
+    $("monthlyIzinPercent").textContent =
+      persenIzin.toFixed(1) + "%";
+
+    $("monthlySakitPercent").textContent =
+      persenSakit.toFixed(1) + "%";
+
+    $("monthlyAlfaPercent").textContent =
+      persenAlfa.toFixed(1) + "%";
+
+    $("monthlyTotal").textContent = total;
+    $("monthlyDays").textContent = result.jumlahHariTercatat || 0;
+
+    if (total > 0) {
+      setMessage(
+        "statusBulanan",
+        "Rekap " + picker.value +
+          " berhasil dimuat. Total " + total +
+          " catatan siswa-hari dari " +
+          result.jumlahHariTercatat +
+          " tanggal yang tercatat."
+      );
+    } else {
+      setMessage(
+        "statusBulanan",
+        "Belum ada catatan absensi pada bulan yang dipilih."
+      );
+    }
+  } catch (error) {
+    console.error(error);
+
+    setMessage(
+      "statusBulanan",
+      "Gagal memuat rekap bulanan. Periksa URL dan deployment Apps Script.",
+      true
+    );
+  }
+}
+
+/* =========================
+   SAAT HALAMAN DIBUKA
+========================= */
 
 window.addEventListener("DOMContentLoaded", () => {
   showPage("homePage");
+  initMonthPicker();
+
+  const monthPicker = $("bulanAbsensi");
+
+  if (monthPicker) {
+    monthPicker.addEventListener("change", loadMonthlyDashboard);
+  }
+
+  const passwordInput = $("password");
+
+  if (passwordInput) {
+    passwordInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        loginAdmin();
+      }
+    });
+  }
 });

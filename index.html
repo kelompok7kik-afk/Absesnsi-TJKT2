@@ -1,59 +1,102 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#00152e">
   <title>Absensi QR Siswa</title>
+
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+  <!-- HALAMAN UTAMA -->
   <section id="homePage" class="page home-page">
     <div class="home-container">
       <div class="logo">📚</div>
       <h1>ABSENSI SISWA</h1>
       <p class="subtitle">Sistem Absensi Berbasis QR Code</p>
-      <button class="btn primary" onclick="showLoginPage('scan')">📷 ABSENSI SISWA</button>
-      <button class="btn secondary" onclick="showRolePage()">👨‍🏫 GURU / ADMIN</button>
+
+      <button class="btn primary" onclick="showLoginPage('scan')">
+        📷 ABSENSI SISWA
+      </button>
+
+      <button class="btn secondary" onclick="showRolePage()">
+        👨‍🏫 GURU / ADMIN
+      </button>
     </div>
   </section>
 
+  <!-- HALAMAN SCAN QR -->
   <section id="studentPage" class="page">
     <div class="container">
       <button class="back-btn" onclick="goHome()">← Kembali</button>
+
       <div class="card">
         <div class="icon">📷</div>
         <h2>Absensi Siswa</h2>
         <p>Arahkan kamera ke QR Code siswa.</p>
+
         <div id="reader"></div>
-        <div id="scanResult" class="result">Kamera belum dijalankan.</div>
+
+        <div id="scanResult" class="result">
+          Kamera belum dijalankan.
+        </div>
+
+        <button class="btn secondary" onclick="startScanner()">
+          ↻ Jalankan Kamera Lagi
+        </button>
       </div>
     </div>
   </section>
 
+  <!-- PILIH AKSES -->
   <section id="rolePage" class="page">
     <div class="container">
       <button class="back-btn" onclick="goHome()">← Kembali</button>
+
       <div class="card">
         <div class="icon">👨‍🏫</div>
         <h2>Pilih Akses</h2>
-        <button class="btn primary" onclick="showLoginPage('guru')">👨‍🏫 GURU</button>
-        <button class="btn secondary" onclick="showLoginPage('admin')">🔐 ADMIN</button>
+
+        <button class="btn primary" onclick="showLoginPage('guru')">
+          👨‍🏫 GURU
+        </button>
+
+        <button class="btn secondary" onclick="showLoginPage('admin')">
+          🔐 ADMIN
+        </button>
       </div>
     </div>
   </section>
 
+  <!-- HALAMAN GURU -->
   <section id="guruPage" class="page">
     <div class="container wide">
-      <button class="back-btn" onclick="goBackToRole()">← Kembali</button>
+      <div class="admin-header">
+        <div>
+          <h2>Data Absensi Guru</h2>
+          <p>Kelola keterangan kehadiran siswa.</p>
+        </div>
+
+        <button class="btn danger small-btn" onclick="logoutAdmin()">
+          Keluar
+        </button>
+      </div>
+
       <div class="card">
-        <div class="icon">👨‍🏫</div>
-        <h2>Data Absensi Guru</h2>
-        <button class="btn secondary small-btn" onclick="loadGuruData()">↻ Muat Ulang</button>
-        <p>Data absensi siswa dari Google Sheets.</p>
+        <button class="back-btn" onclick="loadGuruData()">
+          ↻ Muat Ulang
+        </button>
+
+        <p>
+          Guru dapat mengubah keterangan kehadiran.
+          Waktu scan dan waktu perubahan ditampilkan terpisah.
+        </p>
+
         <div id="guruStatus" class="result">Memuat data...</div>
+
         <div class="table-container">
           <table>
             <thead>
@@ -61,7 +104,8 @@
                 <th>No</th>
                 <th>Nama</th>
                 <th>No Absen</th>
-                <th>Waktu</th>
+                <th>Waktu Scan</th>
+                <th>Waktu Perubahan</th>
                 <th>Keterangan</th>
               </tr>
             </thead>
@@ -72,58 +116,298 @@
     </div>
   </section>
 
+  <!-- HALAMAN LOGIN -->
   <section id="loginPage" class="page">
     <div class="container">
       <button class="back-btn" onclick="goBackToRole()">← Kembali</button>
+
       <div class="card login-card">
         <div class="icon">🔐</div>
+
         <h2 id="loginTitle">Login Guru / Admin</h2>
-        <p id="loginHint">Masuk dengan akun yang terdaftar untuk melanjutkan.</p>
-        <input type="text" id="username" placeholder="Username" autocomplete="username">
-        <input type="password" id="password" placeholder="Password" autocomplete="current-password">
-        <button class="btn primary" onclick="loginAdmin()">LOGIN</button>
+
+        <p id="loginHint">
+          Masuk dengan akun yang terdaftar untuk melanjutkan.
+        </p>
+
+        <form onsubmit="event.preventDefault(); loginAdmin();">
+          <input
+            type="text"
+            id="username"
+            placeholder="Username"
+            autocomplete="username"
+            required
+          >
+
+          <input
+            type="password"
+            id="password"
+            placeholder="Password"
+            autocomplete="current-password"
+            required
+          >
+
+          <button type="submit" class="btn primary">
+            LOGIN
+          </button>
+        </form>
+
         <div id="loginMessage" class="result"></div>
       </div>
     </div>
   </section>
 
+  <!-- DASHBOARD ADMIN -->
   <section id="adminPage" class="page">
     <div class="container wide">
+
       <div class="admin-header">
         <div>
           <h2>Dashboard Admin</h2>
           <p>Monitoring kehadiran siswa</p>
         </div>
-        <button class="btn danger small-btn" onclick="logoutAdmin()">Keluar</button>
+
+        <button class="btn danger small-btn" onclick="logoutAdmin()">
+          Keluar
+        </button>
       </div>
 
+      <!-- STATISTIK HARIAN -->
       <div class="stats">
-        <div class="stat-card"><div class="stat-icon">👨‍🎓</div><div><span>Total Siswa</span><strong id="totalSiswa">0</strong></div></div>
-        <div class="stat-card"><div class="stat-icon">✅</div><div><span>Hadir</span><strong id="jumlahHadir">0</strong></div></div>
-        <div class="stat-card"><div class="stat-icon">⏰</div><div><span>Terlambat</span><strong id="jumlahTerlambat">0</strong></div></div>
-        <div class="stat-card"><div class="stat-icon">🏠</div><div><span>Waktu Pulang</span><strong id="jumlahWaktuPulang">0</strong></div></div>
-        <div class="stat-card"><div class="stat-icon">📝</div><div><span>Izin</span><strong id="jumlahIzin">0</strong></div></div>
-        <div class="stat-card"><div class="stat-icon">🤒</div><div><span>Sakit</span><strong id="jumlahSakit">0</strong></div></div>
-        <div class="stat-card"><div class="stat-icon">❌</div><div><span>Alfa</span><strong id="jumlahAlfa">0</strong></div></div>
-        <div class="stat-card"><div class="stat-icon">📊</div><div><span>Kehadiran</span><strong id="persentase">0%</strong></div></div>
-      </div>
+        <div class="stat-card">
+          <div class="stat-icon">👨‍🎓</div>
+          <div>
+            <span>Total Siswa</span>
+            <strong id="totalSiswa">0</strong>
+          </div>
+        </div>
 
-      <div class="card chart-card">
-        <h3>Grafik Kehadiran Hari Ini</h3>
-        <div class="chart">
-          <div class="chart-column"><div id="barHadirValue" class="chart-value">0%</div><div id="barHadir" class="bar hadir-bar"></div><span>Hadir</span></div>
-          <div class="chart-column"><div id="barTerlambatValue" class="chart-value">0%</div><div id="barTerlambat" class="bar terlambat-bar"></div><span>Terlambat</span></div>
-          <div class="chart-column"><div id="barWaktuPulangValue" class="chart-value">0%</div><div id="barWaktuPulang" class="bar pulang-bar"></div><span>Pulang</span></div>
-          <div class="chart-column"><div id="barIzinValue" class="chart-value">0%</div><div id="barIzin" class="bar izin-bar"></div><span>Izin</span></div>
-          <div class="chart-column"><div id="barSakitValue" class="chart-value">0%</div><div id="barSakit" class="bar sakit-bar"></div><span>Sakit</span></div>
-          <div class="chart-column"><div id="barAlfaValue" class="chart-value">0%</div><div id="barAlfa" class="bar alfa-bar"></div><span>Alfa</span></div>
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div>
+            <span>Hadir</span>
+            <strong id="jumlahHadir">0</strong>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">⏰</div>
+          <div>
+            <span>Terlambat</span>
+            <strong id="jumlahTerlambat">0</strong>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">🏠</div>
+          <div>
+            <span>Waktu Pulang</span>
+            <strong id="jumlahWaktuPulang">0</strong>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">📝</div>
+          <div>
+            <span>Izin</span>
+            <strong id="jumlahIzin">0</strong>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">🤒</div>
+          <div>
+            <span>Sakit</span>
+            <strong id="jumlahSakit">0</strong>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">❌</div>
+          <div>
+            <span>Alfa</span>
+            <strong id="jumlahAlfa">0</strong>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">📊</div>
+          <div>
+            <span>Kehadiran</span>
+            <strong id="persentase">0%</strong>
+          </div>
         </div>
       </div>
 
+      <!-- GRAFIK BATANG HARIAN -->
+      <div class="card chart-card">
+        <h3>Grafik Kehadiran Hari Ini</h3>
+
+        <div class="chart">
+          <div class="chart-column">
+            <div id="barHadirValue" class="chart-value">0%</div>
+            <div id="barHadir" class="bar hadir-bar"></div>
+            <span>Hadir</span>
+          </div>
+
+          <div class="chart-column">
+            <div id="barTerlambatValue" class="chart-value">0%</div>
+            <div id="barTerlambat" class="bar terlambat-bar"></div>
+            <span>Terlambat</span>
+          </div>
+
+          <div class="chart-column">
+            <div id="barWaktuPulangValue" class="chart-value">0%</div>
+            <div id="barWaktuPulang" class="bar pulang-bar"></div>
+            <span>Pulang</span>
+          </div>
+
+          <div class="chart-column">
+            <div id="barIzinValue" class="chart-value">0%</div>
+            <div id="barIzin" class="bar izin-bar"></div>
+            <span>Izin</span>
+          </div>
+
+          <div class="chart-column">
+            <div id="barSakitValue" class="chart-value">0%</div>
+            <div id="barSakit" class="bar sakit-bar"></div>
+            <span>Sakit</span>
+          </div>
+
+          <div class="chart-column">
+            <div id="barAlfaValue" class="chart-value">0%</div>
+            <div id="barAlfa" class="bar alfa-bar"></div>
+            <span>Alfa</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- REKAP BULANAN -->
+      <div class="card monthly-card">
+        <h3>Persentase Kehadiran Bulanan</h3>
+
+        <p>
+          Pilih bulan untuk melihat rekap status siswa pada tanggal
+          absensi yang tercatat.
+        </p>
+
+        <div class="month-picker-wrap">
+          <label for="bulanAbsensi">Pilih Bulan:</label>
+
+          <input type="month" id="bulanAbsensi">
+
+          <button
+            type="button"
+            class="btn primary small-btn"
+            onclick="loadMonthlyDashboard()"
+          >
+            Tampilkan
+          </button>
+        </div>
+
+        <div class="monthly-content">
+          <div class="donut-wrap">
+            <div id="monthlyDonut" class="monthly-donut">
+              <div class="donut-center">
+                <strong id="monthlyCenterValue">0%</strong>
+                <span>Kehadiran</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="monthly-legend">
+
+            <div class="legend-item">
+              <span class="legend-color legend-hadir"></span>
+
+              <div class="legend-text">
+                <strong>Hadir</strong>
+                <small>Termasuk terlambat dan waktu pulang</small>
+              </div>
+
+              <div class="legend-number">
+                <strong id="monthlyHadirCount">0</strong>
+                <small id="monthlyHadirPercent">0%</small>
+              </div>
+            </div>
+
+            <div class="legend-item">
+              <span class="legend-color legend-izin"></span>
+
+              <div class="legend-text">
+                <strong>Izin</strong>
+              </div>
+
+              <div class="legend-number">
+                <strong id="monthlyIzinCount">0</strong>
+                <small id="monthlyIzinPercent">0%</small>
+              </div>
+            </div>
+
+            <div class="legend-item">
+              <span class="legend-color legend-sakit"></span>
+
+              <div class="legend-text">
+                <strong>Sakit</strong>
+              </div>
+
+              <div class="legend-number">
+                <strong id="monthlySakitCount">0</strong>
+                <small id="monthlySakitPercent">0%</small>
+              </div>
+            </div>
+
+            <div class="legend-item">
+              <span class="legend-color legend-alfa"></span>
+
+              <div class="legend-text">
+                <strong>Alfa</strong>
+              </div>
+
+              <div class="legend-number">
+                <strong id="monthlyAlfaCount">0</strong>
+                <small id="monthlyAlfaPercent">0%</small>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="monthly-summary">
+          <div>
+            <span>Total catatan siswa-hari</span>
+            <strong id="monthlyTotal">0</strong>
+          </div>
+
+          <div>
+            <span>Tanggal absensi tercatat</span>
+            <strong id="monthlyDays">0</strong>
+          </div>
+        </div>
+
+        <div id="statusBulanan" class="result">
+          Rekap bulanan akan ditampilkan di sini.
+        </div>
+      </div>
+
+      <!-- INFORMASI -->
       <div class="card">
         <h3>Informasi</h3>
-        <p>Data dashboard diperoleh langsung dari Google Sheets. Persentase kehadiran menghitung Hadir dan Terlambat.</p>
+
+        <p>
+          Grafik batang menampilkan rekap hari ini. Diagram lingkaran
+          menampilkan rekap bulanan berdasarkan tanggal absensi yang
+          tercatat di Google Sheets. Hadir bulanan mencakup Hadir,
+          Terlambat, dan Waktu Pulang.
+        </p>
+
+        <p>
+          Tanggal tanpa catatan absensi sama sekali tidak otomatis
+          dianggap sebagai hari sekolah. Pastikan pencatatan absensi
+          tersedia untuk setiap hari sekolah yang ingin dihitung.
+        </p>
       </div>
+
     </div>
   </section>
 
